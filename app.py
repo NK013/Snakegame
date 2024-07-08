@@ -1,11 +1,10 @@
-import time
 import colours
 import pygame
 
 from random import randint
 
-WINDOW_HEIGHT = 600 #840
-WINDOW_WIDTH = 900 #800
+WINDOW_HEIGHT = 600
+WINDOW_WIDTH = 900
 WINDOW_DIMENSIONS = WINDOW_WIDTH, WINDOW_HEIGHT
 
 SEGMENT_SIZE  =  20
@@ -27,13 +26,33 @@ screen = pygame.display.set_mode(WINDOW_DIMENSIONS)
 
 
 def draw_start_menu():
-    screen.fill((0, 0, 0))
-    info = font.render("Drücke 'SPACE', um das Spiel zu starten!", True, (255, 255, 255))
+    screen.fill(colours.BACKGROUND_STARTMENU)
+    info = font.render("Drücke 'SPACE', um das Spiel zu starten!", True, colours.TEXT)
     with open('datafile.yml','r') as f:
         data = f.read()
-    highscore = font.render(f"Highscore: {data}", True, (255, 255, 255))
+    highscore = font.render(f"Highscore: {data}", True, colours.TEXT)
+    help = font.render("Bewegen:   [W - Oben]  [S - Unten]  [A - Links]  [D - Rechts]", True, colours.TEXT)
     screen.blit(info, (WINDOW_WIDTH/2 - info.get_width()/2, WINDOW_HEIGHT/2 + info.get_height()/2))
     screen.blit(highscore, (WINDOW_WIDTH/2 - highscore.get_width()/2, WINDOW_HEIGHT/2 + info.get_height()*2 + highscore.get_height()/2))
+    screen.blit(help, (WINDOW_WIDTH/4 - info.get_width()/2, WINDOW_HEIGHT/1.1 + info.get_height()/2))
+    pygame.display.update()
+
+def draw_game_over_screen(score):
+    screen.fill(colours.BACKGROUND_GAMEOVER)
+    title = font.render("Game Over", True, colours.TEXT)
+    scoreText = font.render(f"Deine Punkte: {score}", True, colours.TEXT)
+    restart_button = font.render("R - Neustart", True, colours.TEXT)
+    quit_button = font.render("Q - Verlassen", True, colours.TEXT)
+    screen.blit(title, (WINDOW_WIDTH/2 - title.get_width()/2, WINDOW_HEIGHT/2 - title.get_height()*8))
+    screen.blit(scoreText, (WINDOW_WIDTH/2 - scoreText.get_width()/2, WINDOW_HEIGHT/2 - scoreText.get_height()*2.25))
+    screen.blit(restart_button, (WINDOW_WIDTH/2 - restart_button.get_width()/2, WINDOW_HEIGHT/1.9 + restart_button.get_height()))
+    screen.blit(quit_button, (WINDOW_WIDTH/2 - quit_button.get_width()/2, WINDOW_HEIGHT/2 + quit_button.get_height()/2))
+    with open('datafile.yml','r') as f:
+        data = f.read()
+    score = int(score)
+    if int(data) < score:
+        highscore = font.render("Neuer Highscore!", True, colours.TEXT)
+        screen.blit(highscore, (WINDOW_WIDTH/2 - highscore.get_width()/2, WINDOW_HEIGHT/2 - highscore.get_height()*3.5))
     pygame.display.update()
 
 
@@ -42,10 +61,9 @@ def check_collisions(snake_positions):
 
     return (
         head_x_position in (-20, WINDOW_WIDTH )
-        or head_y_position in (-20, WINDOW_HEIGHT) #20
+        or head_y_position in (-20, WINDOW_HEIGHT)
         or (head_x_position, head_y_position) in snake_positions[1:]
     )
-
 
 def check_food_collision(snake_positions, food_position):
     if snake_positions[0] == food_position:
@@ -79,7 +97,6 @@ def move_snake(snake_positions, direction):
 
 def on_key_press(event, current_direction):
     key = event.__dict__["key"]
-    #print(f"Key num: {key}")
     new_direction = KEY_MAP.get(key)
 
     all_directions = ("Up", "Down", "Left", "Right")
@@ -94,37 +111,25 @@ def on_key_press(event, current_direction):
 
 def set_new_food_position(snake_positions):
     while True:
-        x_position = randint(0, 40) * SEGMENT_SIZE #x_position = randint(0, 39) * SEGMENT_SIZE
-        y_position = randint(2, 28) * SEGMENT_SIZE #y_position = randint(2, 41) * SEGMENT_SIZE
+        x_position = randint(0, 40) * SEGMENT_SIZE
+        y_position = randint(2, 28) * SEGMENT_SIZE
         food_position = (x_position, y_position)
 
         if food_position not in snake_positions:
             return food_position
 
 
-def gameover(score):
-    print()
-    print("🐍 > Du hast verloren!")
-    print("🐍 > Deine Punkte: " + str(score))
-    print()
-
+def save_highscore(score):
     with open('datafile.yml','r') as f:
         data = f.read()
-
+    score = int(score)
     if int(data) < score:
         new_data = score
-
         with open('datafile.yml','w') as f:
             f.write(str(new_data))
 
-        print("🐍 > Du hast einen neuen Highscore aufgestellt!")
-        print("🐍 > Ehemaliger Highscore: " + data)
-        print("🐍 > Neuer Highscore: " + str(new_data))
-        print()
-
-        
-def play_game():
-    game_state = "start_menu"
+def play_game(state):
+    game_state = state
     score = 0
 
     current_direction = "Down"
@@ -134,12 +139,12 @@ def play_game():
     while True:
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
+                save_highscore(score)
                 print("🐍 > Spiel abgebrochen!")
                 print()
                 return
             if event.type == pygame.KEYDOWN:
                     current_direction = on_key_press(event, current_direction)
-                    #print(f"Key pressed: '{pygame.key.name(event.key)}'")  
 
         keys = pygame.key.get_pressed()
 
@@ -147,12 +152,24 @@ def play_game():
             draw_start_menu()
             if keys[pygame.K_SPACE]:
                 game_state = "game"
+
+        if game_state == "game_over":
+            draw_game_over_screen(score)
+            if keys[pygame.K_r]:
+                save_highscore(score)
+                play_game("game")
+            if keys[pygame.K_q]:
+                save_highscore(score)
+                print()
+                print("🐍 > Spiel geschlossen!")
+                print()
+                pygame.quit()
+                quit()
   
         if game_state == "game":
 
-            if keys[pygame.K_ESCAPE]:
-                gameover(score)
-                game_state = "start_menu"
+            #if keys[pygame.K_ESCAPE]:
+                # pause screen
 
             screen.fill(colours.BACKGROUND)
             draw_objects(snake_positions, food_position)
@@ -166,16 +183,16 @@ def play_game():
             move_snake(snake_positions, current_direction)
 
             if check_collisions(snake_positions):
-                gameover(score)
-                return
+                game_state = "game_over"
 
             if check_food_collision(snake_positions, food_position):
                 food_position = set_new_food_position(snake_positions)
                 score += 1
 
-            clock.tick(11) #speed
+            clock.tick(11)
 
 print()
 print("🐍 > Spiel startet ...")
+print()
 
-play_game()
+play_game("start_menu")
