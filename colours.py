@@ -3,6 +3,7 @@ from collections import namedtuple
 Colour = namedtuple("Colour", ["r", "g", "b"])
 
 BACKGROUND = Colour(1, 22, 39)
+BACKGROUND_PAUSE = Colour(5, 39, 66)
 BACKGROUND_STARTMENU = Colour(75, 105, 67)
 BACKGROUND_GAMEOVER = Colour(128, 51, 47)
 

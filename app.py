@@ -37,9 +37,23 @@ def draw_start_menu():
     screen.blit(help, (WINDOW_WIDTH/4 - info.get_width()/2, WINDOW_HEIGHT/1.1 + info.get_height()/2))
     pygame.display.update()
 
+def draw_pause_menu(score):
+    screen.fill(colours.BACKGROUND_PAUSE)
+    title = font.render("Pausiert", True, colours.TEXT)
+    scoreText = font.render(f"Deine Punkte: {score}", True, colours.TEXT)
+    restart_button = font.render("R - Neustart", True, colours.TEXT)
+    quit_button = font.render("Q - Verlassen", True, colours.TEXT)
+    startmenu_button = font.render("E - Startmenu", True, colours.TEXT)
+    screen.blit(title, (WINDOW_WIDTH/2 - title.get_width()/2, WINDOW_HEIGHT/2 - title.get_height()*8))
+    screen.blit(scoreText, (WINDOW_WIDTH/2 - scoreText.get_width()/2, WINDOW_HEIGHT/2 - scoreText.get_height()*2.25))
+    screen.blit(restart_button, (WINDOW_WIDTH/2 - restart_button.get_width()/2, WINDOW_HEIGHT/1.9 + restart_button.get_height()))
+    screen.blit(quit_button, (WINDOW_WIDTH/2 - quit_button.get_width()/2, WINDOW_HEIGHT/2 + quit_button.get_height()/2))
+    screen.blit(startmenu_button, (WINDOW_WIDTH/2 - startmenu_button.get_width()/2, WINDOW_HEIGHT/2 + startmenu_button.get_height()*3))
+    pygame.display.update()
+
 def draw_game_over_screen(score):
     screen.fill(colours.BACKGROUND_GAMEOVER)
-    title = font.render("Game Over", True, colours.TEXT)
+    title = font.render("Verloren", True, colours.TEXT)
     scoreText = font.render(f"Deine Punkte: {score}", True, colours.TEXT)
     restart_button = font.render("R - Neustart", True, colours.TEXT)
     quit_button = font.render("Q - Verlassen", True, colours.TEXT)
@@ -146,15 +160,32 @@ def play_game(state):
             if event.type == pygame.KEYDOWN:
                     current_direction = on_key_press(event, current_direction)
 
-        keys = pygame.key.get_pressed()
-
         if game_state == "start_menu":
             draw_start_menu()
+            keys = pygame.key.get_pressed()
             if keys[pygame.K_SPACE]:
                 game_state = "game"
 
+        if game_state == "pause_menu":
+            draw_pause_menu(score)
+            keys = pygame.key.get_pressed()
+            if keys[pygame.K_r]:
+                save_highscore(score)
+                play_game("game")
+            if keys[pygame.K_q]:
+                save_highscore(score)
+                print()
+                print("🐍 > Spiel geschlossen!")
+                print()
+                pygame.quit()
+                quit()
+            if keys[pygame.K_e]:
+                save_highscore(score)
+                play_game("start_menu")
+
         if game_state == "game_over":
             draw_game_over_screen(score)
+            keys = pygame.key.get_pressed()
             if keys[pygame.K_r]:
                 save_highscore(score)
                 play_game("game")
@@ -167,18 +198,17 @@ def play_game(state):
                 quit()
   
         if game_state == "game":
-
-            #if keys[pygame.K_ESCAPE]:
-                # pause screen
-
             screen.fill(colours.BACKGROUND)
             draw_objects(snake_positions, food_position)
-
         
             scoreText = font.render(f"Punkte: {score}", True, colours.TEXT)
             screen.blit(scoreText, (20, 20))
 
             pygame.display.update()
+
+            keys = pygame.key.get_pressed()
+            if keys[pygame.K_ESCAPE]:
+                game_state = "pause_menu"
 
             move_snake(snake_positions, current_direction)
 
